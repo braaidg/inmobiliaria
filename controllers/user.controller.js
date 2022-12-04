@@ -1,5 +1,7 @@
 import { check, validationResult } from "express-validator";
 import User from "../models/User.js";
+import { generateId } from "../helpers/tokens.js";
+import { registerEmail } from "../helpers/emails.js";
 
 const loginForm = (req, res) => {
   res.render("auth/login", {
@@ -10,6 +12,7 @@ const loginForm = (req, res) => {
 const registerForm = (req, res) => {
   res.render("auth/register", {
     page: "Create account",
+    csrfToken: req.csrfToken(),
   });
 };
 
@@ -39,6 +42,7 @@ const register = async (req, res) => {
     return res.render("auth/register", {
       page: "Create account",
       errors: results.array(),
+      csrfToken: req.csrfToken(),
       user: {
         name,
         email,
@@ -52,6 +56,7 @@ const register = async (req, res) => {
     return res.render("auth/register", {
       page: "Create account",
       errors: [{ msg: "User is already registered" }],
+      csrfToken: req.csrfToken(),
       user: {
         name,
         email,
@@ -59,8 +64,46 @@ const register = async (req, res) => {
     });
   }
 
-  const newUser = await User.create({ name, email, password, token: 123 });
-  res.json(newUser);
+  const newUser = await User.create({
+    name,
+    email,
+    password,
+    token: generateId(),
+  });
+
+  registerEmail({
+    name: newUser.name,
+    email: newUser.email,
+    token: newUser.token,
+  });
+
+  res.render("templates/message", {
+    page: "Account successfully created",
+    message: "We sent you an confirmation email, click on the link ",
+  });
 };
 
-export { loginForm, registerForm, forgotPasswordForm, register };
+const confirm = async (req, res, next) => {
+  const { token } = req.params;
+
+  const user = await User.findOne({ where: { token } });
+
+  if (!user) {
+    return res.render("auth/confirm-account", {
+      page: "Error at account confirmation",
+      message: "There was an error trying to confirm your account, try again.",
+      error: true,
+    });
+  }
+
+  user.token = null;
+  user.confirmed = true;
+  await user.save();
+
+  res.render("auth/confirm-account", {
+    page: "Account confirmed",
+    message: "Your account was successfully confirmed.",
+  });
+};
+
+export { loginForm, registerForm, forgotPasswordForm, register, confirm };
