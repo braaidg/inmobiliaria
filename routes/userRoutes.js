@@ -1,13 +1,14 @@
 import express from "express";
+import {
+  loginForm,
+  registerForm,
+  forgotPasswordForm,
+} from "../controllers/user.controller.js";
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.send("Hola mundo");
-});
-
-router.get("/about-us", (req, res) => {
-  res.send("About us ");
-});
+router.get("/login", loginForm);
+router.get("/register", registerForm);
+router.get("/forgot-password", forgotPasswordForm);
 
 export default router;

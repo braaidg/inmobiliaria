@@ -3,7 +3,12 @@ import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 
-app.use("/", userRoutes);
+app.set("view engine", "pug");
+app.set("views", "./views");
+
+app.use(express.static("public"));
+
+app.use("/auth", userRoutes);
 
 const port = 3001;
 
